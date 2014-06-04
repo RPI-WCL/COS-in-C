@@ -83,8 +83,8 @@ int send_msg( char *dest_addr, char *return_addr, CosMessage *msg )
 }
 
 
-/* Called from Cluster Controller */
-int ClusterController_create_vm_resp(
+/* Called from Node Manager */
+int CosManager_create_vm_resp(
     char        *cos_addr,
     char        *nc_addr,
     char        *vm_name,
@@ -112,7 +112,7 @@ int ClusterController_create_vm_resp(
 }
 
 
-int ClusterController_notify_high_cpu_usage(
+int CosManager_notify_high_cpu_usage(
     char        *cos_addr,
     char        *nc_addr,
     char        *vm_name,
@@ -139,7 +139,7 @@ int ClusterController_notify_high_cpu_usage(
 }
 
 
-int ClusterController_notify_low_cpu_usage(
+int CosManager_notify_low_cpu_usage(
     char        *cos_addr,
     char        *nc_addr,
     char        *vm_name,
@@ -166,7 +166,7 @@ int ClusterController_notify_low_cpu_usage(
 }
 
 
-int ClusterController_destroy_vm_resp(
+int CosManager_destroy_vm_resp(
     char        *cos_addr,
     char        *nc_addr,
     char        *vm_name,

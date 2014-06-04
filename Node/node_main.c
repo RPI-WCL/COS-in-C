@@ -260,8 +260,8 @@ int create_vm_req(
 EXIT:
     if (retval < 0) {
         vm->vm_state = VmState_NULL;
-        if (ClusterController_create_vm_resp( cos__addr, node_addr, vm->vm_name, vm->theater, -1 /*FAIL*/ ) < 0)
-            Dbg_printf( NODE, ERROR, "ClusterController_create_vm_resp failed\n" );
+        if (CosManager_create_vm_resp( cos__addr, node_addr, vm->vm_name, vm->theater, -1 /*FAIL*/ ) < 0)
+            Dbg_printf( NODE, ERROR, "CosManager_create_vm_resp failed\n" );
     }
     else {
         vm->vm_state = VmState_IN_CREATION;
@@ -302,8 +302,8 @@ int destroy_vm_req(
 EXIT:
     if (retval < 0) {
         vm->vm_state = VmState_NULL;
-        if (ClusterController_destroy_vm_resp( cos__addr, node_addr, vm_name, -1 /*FAIL*/ ) < 0)
-            Dbg_printf( NODE, ERROR, "ClusterController_destroy_vm_resp failed\n" );
+        if (CosManager_destroy_vm_resp( cos__addr, node_addr, vm_name, -1 /*FAIL*/ ) < 0)
+            Dbg_printf( NODE, ERROR, "CosManager_destroy_vm_resp failed\n" );
     }
     else {
         vm->vm_state = VmState_IN_SHUTTING_DOWN;
@@ -335,13 +335,13 @@ int notify_vm_started( char *vmmon_addr, char *theater )
 
 EXIT:
     if (retval < 0) {
-        if (ClusterController_create_vm_resp( cos__addr, node_addr, NULL, NULL, -1 ) < 0) {
-            Dbg_printf( NODE, ERROR, "ClusterController_create_vm_resp failed\n" );
+        if (CosManager_create_vm_resp( cos__addr, node_addr, NULL, NULL, -1 ) < 0) {
+            Dbg_printf( NODE, ERROR, "CosManager_create_vm_resp failed\n" );
         }
     }
     else {
-        if (ClusterController_create_vm_resp( cos__addr, node_addr, vm->vm_name, vm->theater, 0 ) < 0) {
-            Dbg_printf( NODE, ERROR, "ClusterController_create_vm_resp failed\n" );
+        if (CosManager_create_vm_resp( cos__addr, node_addr, vm->vm_name, vm->theater, 0 ) < 0) {
+            Dbg_printf( NODE, ERROR, "CosManager_create_vm_resp failed\n" );
             vm->vm_state = VmState_NULL;
             retval = -1;
         }
@@ -369,9 +369,9 @@ int notify_high_cpu_usage(
         return -1;
     }
 
-    if (ClusterController_notify_high_cpu_usage( 
+    if (CosManager_notify_high_cpu_usage( 
             cos__addr, node_addr, vm->vm_name, cpu_usage_history ) < 0) {
-        Dbg_printf( NODE, ERROR, "ClusterController_notify_high_cpu_usage failed\n" );
+        Dbg_printf( NODE, ERROR, "CosManager_notify_high_cpu_usage failed\n" );
         return -1;
     }
 
@@ -393,9 +393,9 @@ int notify_low_cpu_usage(
         return -1;
     }
 
-    if (ClusterController_notify_low_cpu_usage( 
+    if (CosManager_notify_low_cpu_usage( 
             cos__addr, node_addr, vm->vm_name, cpu_usage_history ) < 0) {
-        Dbg_printf( NODE, ERROR, "ClusterController_notify_low_cpu_usage failed\n" );
+        Dbg_printf( NODE, ERROR, "CosManager_notify_low_cpu_usage failed\n" );
         return -1;
     }
 
@@ -439,8 +439,8 @@ int shutdown_theater_resp(
 #endif
 
 EXIT:
-    if (ClusterController_destroy_vm_resp( cos__addr, node_addr, vm->vm_name, cos__resp ) < 0) {
-        Dbg_printf( NODE, ERROR, "ClusterController_destroy_vm_resp failed\n" );
+    if (CosManager_destroy_vm_resp( cos__addr, node_addr, vm->vm_name, cos__resp ) < 0) {
+        Dbg_printf( NODE, ERROR, "CosManager_destroy_vm_resp failed\n" );
         retval = -1;
     }
 

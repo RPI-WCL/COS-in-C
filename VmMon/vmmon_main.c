@@ -108,7 +108,7 @@ double gettimeofday_sec( void )
 static
 int get_cpu_time( int *cpu_time )
 {
-	char *buf[64];
+	char buf[64];
 	int usr, nice, sys;
     FILE *fp;
 
