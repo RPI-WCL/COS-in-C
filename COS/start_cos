@@ -1,0 +1,4 @@
+export LD_LIBRARY_PATH=../Lib
+export netif=xenbr0
+export CLASSPATH=.:../Lib/salsa0.7.2.jar:../Lib/ios0.4.jar
+./CosManager 5000 nodelist.txt
