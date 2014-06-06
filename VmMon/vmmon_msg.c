@@ -8,7 +8,7 @@
 
 static 
 char *msgid_strings[VMMON_NUM_MESSAGES] = {
-    "SHUTDOWN_THEATER_REQ" };
+    "SHUTDOWN_THEATER_REQ", "START_VM_REQ" };
 
 VmMessage* vmmon_alloc_msg(
     VmMessageID msgid )
@@ -83,7 +83,7 @@ int vmmon_stringify_msg(
 /* Second line : MSGID,RETURN_ADDR,PARAM1,PARAM2,.... ; data entries */
 
     int currlen = 0, num_params = 0, i, retval = 0;
-    char tempbuf[128];
+    char tempbuf[512];
 
     if ( (msg->msgid < VmMessageID_SHUTDOWN_THEATER_REQ) || (VmMessageID_UNKNOWN <= msg->msgid) ) {
         Dbg_printf( VMMON, ERROR, "vmmon_stringify_msg, invalid msgID=%d\n", msg->msgid );
@@ -104,6 +104,9 @@ int vmmon_stringify_msg(
         sprintf( &tempbuf[currlen], ",%s", msg->shutdown_theater_req_msg.theater );
         currlen = strlen( tempbuf );
         num_params++;
+        break;
+
+    case VmMessageID_START_VM_REQ:
         break;
         
     default:
@@ -147,9 +150,14 @@ VmMessage* vmmon_parse_msg(
     
     switch( msgid ) {
     case VmMessageID_SHUTDOWN_THEATER_REQ:
-        msg = vmmon_alloc_msg( VmMessageID_SHUTDOWN_THEATER_REQ );
+        msg = vmmon_alloc_msg( msgid );
         msg->return_addr = parsed_msg[1];
         msg->shutdown_theater_req_msg.theater = parsed_msg[2];
+        break;
+
+    case VmMessageID_START_VM_REQ:
+        msg = vmmon_alloc_msg( msgid );
+        msg->return_addr = parsed_msg[1];
         break;
 
     default:

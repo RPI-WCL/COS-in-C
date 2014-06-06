@@ -10,7 +10,7 @@
 #include "Socket.h"
 #include "vmmon_msg.h"
 
-#define SENDBUF_LEN 128
+#define SENDBUF_LEN 512
 
 
 static
@@ -69,6 +69,29 @@ int VmMonitor_shutdown_theater_req(
 
     msg = vmmon_alloc_msg( VmMessageID_SHUTDOWN_THEATER_REQ );
     vmmon_set_shutdown_theater_req_msg( msg, theater );
+
+    if (send_msg( vmmon_addr, return_nc_addr, msg ) < 0) {
+        Dbg_printf( VMMON, ERROR, "send_msg, vmmon_addr=%s, msg=%s failed\n", 
+                    vmmon_addr, vmmon_msgid2str( msg->msgid ) );
+        retval = -1;
+    }
+
+    vmmon_dealloc_msg( msg );
+
+    return retval;
+}
+
+
+int VmMonitor_start_vm_req(
+    char        *vmmon_addr,
+    char        *return_nc_addr)
+{
+    int retval = 0;
+    VmMessage *msg;
+
+    Dbg_printf( VMMON, INFO, "vmmon_addr=%s, return_nc_addr=%s\n", vmmon_addr, return_nc_addr );
+
+    msg = vmmon_alloc_msg( VmMessageID_START_VM_REQ );
 
     if (send_msg( vmmon_addr, return_nc_addr, msg ) < 0) {
         Dbg_printf( VMMON, ERROR, "send_msg, vmmon_addr=%s, msg=%s failed\n", 

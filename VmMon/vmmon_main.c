@@ -20,7 +20,7 @@
 
 #define DEFAULT_LISTEN_PORT     5002
 #define DEFAULT_THEATER_PORT    4040
-#define MAX_RECVBUF_LEN         128
+#define MAX_RECVBUF_LEN         512
 
 #define ACCEPT_TIMEOUT_MSEC     5000
 #define SAMPLING_INTERVAL_MSEC  500
@@ -41,6 +41,10 @@
 #define LOAD_INCREASE_DETECTION_THRESHOLD 1.05  /* 5% increase */
 #define LOAD_DECREASE_DETECTION_THRESHOLD 0.95  /* 5% decrease */
 
+#define THEATER_TERMINAL_COLOR  "Purple"
+#define THEATER_IOS_PATH        "Git/COS-in-C/Lib/ios0.4.jar"
+#define THEATER_SALSA_PATH      "Git/COS-in-C/Lib/salsa1.1.5.jar"
+#define THEATER_START_COMMAND   "src.IOSTheater"
 
 typedef enum {
     CpuUsage_HIGH = 0,
@@ -57,9 +61,8 @@ static int vcpu = -1;
 static int cpu_check_iteration = 0;
 static double cpu_usage_history[CPU_USAGE_HISTORY_LEN];
 static int low_cpu_usage_event_enabled = 0;     /* it turns on once a high cpu event is detected */
-char nc_addr[24], vmmon_addr[24];
-
-
+static char cos_addr[24], nc_addr[24], vmmon_addr[24], theater[24];
+static int is_monitoring = 1;
 int dbg_level = ALL;
 
 static
@@ -219,6 +222,14 @@ int exec_command( char *param1, char *param2, char *param3,
 
 
 static
+int exec_system( char *cmd ) 
+{
+    Dbg_printf( VMMON, INFO, "cmd=%s\n", cmd );
+    return system( cmd );
+}
+
+
+static
 int notify_vm_started( char *nc_addr, char *vmmon_addr, char *theater )
 {
     Dbg_printf( VMMON, DEBUG, "nc_addr=%s, vmmon_addr=%s, theater=%s\n", nc_addr, vmmon_addr, theater );
@@ -258,6 +269,19 @@ int shutdown_theater_req( char *theater )
     }
 
     return 0;
+}
+
+static
+int start_vm_req( void ) 
+{
+    /* start a Theater */
+    exec_system( "gnome-terminal --window-with-profile=\"Blue\" --command=\"java -cp .:/home/shigeru/Git/COS-in-C/Lib/salsa1.1.5.jar:/home/shigeru/Git/COS-in-C/Lib/ios0.4.jar -Dnetif=eth0 src.IOSTheater\"" );
+    
+    /* notify vm started */
+    notify_vm_started( nc_addr, vmmon_addr, theater );
+
+    /* start monitoring */
+    is_monitoring = 1;
 }
 
 
@@ -374,35 +398,56 @@ void check_cpu_usage( void )
     }
 }
 
+static
+int start_theater_terminal( char *dest_ipaddr )
+{
+    char cmd[256], classpath[128];
+    strcpy( classpath, getenv("HOME") );
+    strcat( classpath, "/" );
+    strcat( classpath, THEATER_SALSA_PATH );
+    strcat( classpath, ":" );
+    strcat( classpath, getenv("HOME") );
+    strcat( classpath, "/" );
+    strcat( classpath, THEATER_IOS_PATH );
+
+    sprintf( cmd, "gnome-terminal --title=\"IOSTheater@%s:%d\" --window-with-profile=\"%s\" --command=\"ssh user@%s java -Dnetif=\"eth0\" -cp %s %s\"",
+                 dest_ipaddr, theater_port, THEATER_TERMINAL_COLOR, dest_ipaddr,
+                 classpath, THEATER_START_COMMAND );
+    CosManager_launch_terminal_req( cos_addr, vmmon_addr, cmd );
+}
+
 
 int main( int argc, char *argv[] )
 {
     int buflen, retval;
-    char buf[MAX_RECVBUF_LEN], eth0_addr[16], theater[24];
+    char buf[MAX_RECVBUF_LEN], eth0_addr[16];
     VmMessage *msg;
 
     listen_port = DEFAULT_LISTEN_PORT;
-    if (argc == 3) {
-        /* nc_addr & vcpu must be given as a parameter */
-        strcpy( nc_addr, argv[1] );
-        vcpu = atoi( argv[2] );
+    if (argc == 4) {
+        /* cos_addr, nc_addr & vcpu must be given as a parameter */
+        strcpy( cos_addr, argv[1] );
+        strcpy( nc_addr, argv[2] );
+        vcpu = atoi( argv[3] );
         listen_port = DEFAULT_LISTEN_PORT;
         theater_port = DEFAULT_THEATER_PORT;
     }
-    else if (argc == 4) {
-        strcpy( nc_addr, argv[1] );
-        vcpu = atoi( argv[2] );
-        listen_port = atoi( argv[3] );
+    else if (argc == 5) {
+        strcpy( cos_addr, argv[1] );
+        strcpy( nc_addr, argv[2] );
+        vcpu = atoi( argv[3] );
+        listen_port = atoi( argv[4] );
         theater_port = DEFAULT_THEATER_PORT;
     }
-    else if (argc == 5) {
-        strcpy( nc_addr, argv[1] );
-        vcpu = atoi( argv[2] );
-        listen_port = atoi( argv[3] );
-        theater_port = atoi( argv[4] );
+    else if (argc == 6) {
+        strcpy( cos_addr, argv[1] );
+        strcpy( nc_addr, argv[2] );
+        vcpu = atoi( argv[3] );
+        listen_port = atoi( argv[4] );
+        theater_port = atoi( argv[5] );
     }
     else {
-        Dbg_printf( VMMON, ERROR, "Usage: ./VmMonitor [NodeManager IP addr] [#vcpu] [listen port] [theater port]\n" );
+        Dbg_printf( VMMON, ERROR, "Usage: ./VmMonitor [CosManager IP addr] [NodeManager IP addr] [#vcpu] [listen port] [theater port]\n" );
         return -1;
     }
 
@@ -426,30 +471,34 @@ int main( int argc, char *argv[] )
         exit( 1 );
     }
 
+    /* printf( "VM Monitor has started!!\n" );  */
+    /* fflush(stdout); */
     Dbg_printf( VMMON, DEBUG, "VM Monitor has started!!\n" ); 
     get_netif_addr( "eth0", eth0_addr );
     sprintf( theater, "%s:%d", eth0_addr, theater_port );
     sprintf( vmmon_addr, "%s:%d", eth0_addr, listen_port );
-    notify_vm_started( nc_addr ,vmmon_addr, theater );
+    /* notify_vm_started( nc_addr ,vmmon_addr, theater ); */
+
+    /* start_theater_terminal( eth0_addr ); */
 
     Socket_set_timeout( sock, ACCEPT_TIMEOUT_MSEC /*ms*/);
 
     while( 1 ) {
-        Dbg_printf( VMMON, DEBUG, "VM MONITOR LISTENING %s\n", vmmon_addr );
-
         /* accepting data */
         buflen = MAX_RECVBUF_LEN;
         newsock = Socket_accept( sock );
-        
-        if ((newsock < 0) && (errno == EINTR)) {
-            Dbg_printf( VMMON, ERROR, "system interrupt occured\n" );
-            continue;
-        }
 
+        Dbg_printf( VMMON, DEBUG, "VM MONITOR LISTENING %s\n", vmmon_addr );
+        
         if (newsock < 0) {
-            Dbg_printf( VMMON, DEBUG, "CPU_CHECK_ITERATION=%d\n", cpu_check_iteration );
-            check_cpu_usage();
-            cpu_check_iteration++;
+            if (errno == EINTR) {
+                Dbg_printf( VMMON, ERROR, "system interrupt occured\n" );
+            }
+            if (is_monitoring) {
+                Dbg_printf( VMMON, DEBUG, "CPU_CHECK_ITERATION=%d\n", cpu_check_iteration );
+                check_cpu_usage();
+                cpu_check_iteration++;
+            }
             continue;
         }
 
@@ -471,6 +520,10 @@ int main( int argc, char *argv[] )
         switch (msg->msgid) {
         case VmMessageID_SHUTDOWN_THEATER_REQ:
             shutdown_theater_req( msg->shutdown_theater_req_msg.theater );
+            break;
+
+        case VmMessageID_START_VM_REQ:
+            start_vm_req();
             break;
 
         default:

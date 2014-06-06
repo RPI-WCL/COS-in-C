@@ -7,4 +7,8 @@ int VmMonitor_shutdown_theater_req(
     char        *return_nc_addr,
     char        *theater );
 
+int VmMonitor_start_vm_req(
+    char        *vmmon_addr,
+    char        *return_nc_addr);
+
 #endif /* #ifndef _VM_MONITOR_H */

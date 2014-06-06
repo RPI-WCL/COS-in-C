@@ -11,7 +11,7 @@
 #include "Socket.h"
 #include "cos_msg.h"
 
-#define SENDBUF_LEN 128
+#define SENDBUF_LEN 512
 
 static char cos_addr[16] = {0};
 
@@ -191,4 +191,57 @@ int CosManager_destroy_vm_resp(
 
     return retval;
 
+}
+
+
+int CosManager_launch_terminal_req(
+    char        *cos_addr,
+    char        *sender,        /* node or vm */
+    char        *cmd )
+{
+    int retval = 0;
+    CosMessage *msg;
+
+    Dbg_printf( COS, INFO, "cos_addr=%s, sender=%s, cmd=%s\n", 
+                cos_addr, sender, cmd );
+
+    msg = cos_alloc_msg( CosMessageID_LAUNCH_TERMINAL_REQ );
+    cos_set_launch_terminal_req_msg( msg, cmd );
+
+    if (send_msg( cos_addr, sender, msg ) < 0) {
+        Dbg_printf( COS, ERROR, "cos_send_msg, cos_addr=%s, msg=%s failed\n", 
+                    cos_addr, cos_msgid2str( msg->msgid ) );
+        retval = -1;
+    }
+
+    cos_dealloc_msg( msg );
+
+    return retval;
+
+
+}
+
+
+int CosManager_test(
+    char        *cos_addr,
+    char        *data )
+{
+    int retval = 0;
+    CosMessage *msg;
+
+    Dbg_printf( COS, INFO, "cos_addr=%s, data=%s\n",
+                cos_addr, data );
+
+    msg = cos_alloc_msg( CosMessageID_TEST );
+    cos_set_test_msg( msg, data );
+
+    if (send_msg( cos_addr, NULL, msg ) < 0) {
+        Dbg_printf( COS, ERROR, "cos_send_msg, cos_addr=%s, msg=%s failed\n", 
+                    cos_addr, cos_msgid2str( msg->msgid ) );
+        retval = -1;
+    }
+
+    cos_dealloc_msg( msg );
+
+    return retval;
 }

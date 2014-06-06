@@ -7,6 +7,10 @@ TARGET = libCosManager.so CosManager
 
 all: $(TARGET) 
 
+lib: libCosManager.so
+
+entity: CosManager
+
 libCosManager.so: CosManager.o cos_msg.o
 	$(CC) -shared -o $@ CosManager.o cos_msg.o $(LDFLAGS) -lCommon
 	mv $@ ../Lib

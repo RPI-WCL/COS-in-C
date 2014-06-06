@@ -3,7 +3,7 @@
 
 #include "CommonDef.h"
 
-#define COS_NUM_MESSAGES        4
+#define COS_NUM_MESSAGES        6
 
 typedef enum {
     /* response from Node Controllers */
@@ -11,6 +11,8 @@ typedef enum {
     CosMessageID_NOTIFY_HIGH_CPU_USAGE,
     CosMessageID_NOTIFY_LOW_CPU_USAGE,
     CosMessageID_DESTROY_VM_RESP,
+    CosMessageID_LAUNCH_TERMINAL_REQ,
+    CosMessageID_TEST,
 
     CosMessageID_UNKNOWN
 } CosMessageID;
@@ -32,12 +34,23 @@ typedef struct {
 } CosDestroyVmRespMsg;
 
 typedef struct {
+    char        *cmd;
+    int         result;
+} CosLaunchTerminalReqMsg;
+
+typedef struct {
+    char        *data;
+} CosTestMsg;
+
+typedef struct {
     CosMessageID msgid;
     char        *return_addr;
     union {
         CosCreateVmRespMsg       create_vm_resp_msg;
         CosNotifyCpuUsageMsg     notify_cpu_usage_msg;
         CosDestroyVmRespMsg      destroy_vm_resp_msg;
+        CosLaunchTerminalReqMsg  launch_term_req_msg;
+        CosTestMsg               test_msg;
     };
 } CosMessage;
 
@@ -67,6 +80,13 @@ void cos_set_destroy_vm_resp_msg(
     char        *vm_name,
     int         result );
 
+void cos_set_launch_terminal_req_msg(
+    CosMessage  *msg,
+    char        *cmd );
+
+void cos_test_msg(
+    CosMessage  *msg,
+    char        *data );
 
 void cos_dealloc_msg(
     CosMessage  *msg );

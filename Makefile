@@ -1,12 +1,16 @@
-subdirs := Common VmMon COS Node
-.PHONY: all $(subdirs)
+SUBDIRS = Common VmMon COS Node
 
-all: $(subdirs)
+.PHONY: all $(SUBDIRS)
+
+all:
+	-for d in $(SUBDIRS); do (cd $$d; $(MAKE) lib); done
+	-for d in $(SUBDIRS); do (cd $$d; $(MAKE) entity); done
 
 clean:
-	-for d in $(subdirs); do (cd $$d; $(MAKE) clean); done
+	-for d in $(SUBDIRS); do (cd $$d; $(MAKE) clean); done
 
-$(subdirs):
+$(SUBDIRS):
 	if [ ! -d Lib ]; then mkdir Lib; fi
 	$(MAKE) -C $@
+
 

@@ -1,22 +1,25 @@
 CC = gcc
 CFLAGS = -g -fPIC
 LDFLAGS =
-JNI_INCLUDES =
-INCLUDES =
-LIBS =
-TARGET = libCommon.so
+INCLUDES = -I.
+TARGET = 
+
 OBJS = Socket.o ParseMsg.o
 
-$(TARGET): $(OBJS)
+lib: libCommon.so
+
+libCommon.so: $(OBJS) 
 	$(CC) -shared -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
-	mv $(TARGET) ../Lib
+	mv $@ ../Lib
+
+entity: 
 
 .c.o:
-	$(CC) $(CFLAGS) $(INCLUDES) -c $<
+	$(CC) $(CFLAGS) $(INCLUDES) $(LDFLAGS) -c $< -o $*.o
 
 .PHONY: clean
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(OBJS)
 
 Socket.o : Socket.h DebugPrint.h
 ParseMsg.o : ParseMsg.h DebugPrint.h

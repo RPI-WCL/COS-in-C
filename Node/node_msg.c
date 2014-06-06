@@ -133,7 +133,7 @@ int node_stringify_msg(
 /* Second line : MSGID,RETURN_ADDR,PARAM1,PARAM2,.... ; data entries */
 
     int currlen = 0, num_params = 0, i, retval = 0;
-    char tempbuf[128];
+    char tempbuf[512];
 
     if ( (msg->msgid < NodeMessageID_CREATE_VM_REQ) || (NodeMessageID_UNKNOWN <= msg->msgid) ) {
         Dbg_printf( NODE, ERROR, "node_stringify_msg, invalid msgID=%d\n", msg->msgid );

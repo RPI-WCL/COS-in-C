@@ -3,13 +3,14 @@
 
 #include "CommonDef.h"
 
-#define VMMON_NUM_MESSAGES       1
+#define VMMON_NUM_MESSAGES       2
 
 /****** type definitions ******/
 
 typedef enum {
 /* Messages from Node Controller */
     VmMessageID_SHUTDOWN_THEATER_REQ = 0,
+    VmMessageID_START_VM_REQ,
 
     VmMessageID_UNKNOWN
 } VmMessageID;

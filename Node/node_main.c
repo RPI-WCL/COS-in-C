@@ -19,8 +19,15 @@
 #include "node_msg.h"
 
 #define DEFAULT_LISTEN_PORT     5001
-#define MAX_RECVBUF_LEN         128
+#define MAX_RECVBUF_LEN         512
 #define VM_ARRAY_LEN            1       /* use only 1 for now */
+
+#define VMMON_TERMINAL_COLOR    "Blue"
+#define VMMON_EXEC_PATH         "Git/COS-in-C/VmMon/VmMonitor"
+#define VMMON_VCPU              1
+#define VMMON_LISTEN_PORT       5002
+
+
 
 typedef enum {
     VmState_NULL = 0,
@@ -48,7 +55,7 @@ static int curr_vm_id = 1;
 static int listen_port = -1;
 static VM vm_array[VM_ARRAY_LEN];
 static int num_vm = -1;
-char cos__addr[24], node_addr[24];
+static char cos_addr[24], node_addr[24];
 
 int dbg_level = ALL;
 
@@ -260,7 +267,7 @@ int create_vm_req(
 EXIT:
     if (retval < 0) {
         vm->vm_state = VmState_NULL;
-        if (CosManager_create_vm_resp( cos__addr, node_addr, vm->vm_name, vm->theater, -1 /*FAIL*/ ) < 0)
+        if (CosManager_create_vm_resp( cos_addr, node_addr, vm->vm_name, vm->theater, -1 /*FAIL*/ ) < 0)
             Dbg_printf( NODE, ERROR, "CosManager_create_vm_resp failed\n" );
     }
     else {
@@ -268,6 +275,22 @@ EXIT:
     }
 
     return retval;
+}
+
+
+static
+int start_vm_terminal( char *dest_ipaddr )
+{
+    char cmd[256], exec_path[64];
+    strcpy( exec_path, getenv("HOME") );
+    strcat( exec_path, "/" );
+    strcat( exec_path, VMMON_EXEC_PATH );
+    sprintf( cmd, "gnome-terminal --title=\"VmMonitor@%s:%d\" --window-with-profile=\"%s\" --command=\"ssh user@%s %s %s %s %d %d\"", 
+             dest_ipaddr, VMMON_LISTEN_PORT, VMMON_TERMINAL_COLOR, dest_ipaddr,
+             exec_path, cos_addr, node_addr, VMMON_VCPU, VMMON_LISTEN_PORT );
+    CosManager_launch_terminal_req( cos_addr, node_addr, cmd );
+    usleep(3 * 1000000);
+    CosManager_test( cos_addr, "ABCDEFG" );
 }
 
 
@@ -302,7 +325,7 @@ int destroy_vm_req(
 EXIT:
     if (retval < 0) {
         vm->vm_state = VmState_NULL;
-        if (CosManager_destroy_vm_resp( cos__addr, node_addr, vm_name, -1 /*FAIL*/ ) < 0)
+        if (CosManager_destroy_vm_resp( cos_addr, node_addr, vm_name, -1 /*FAIL*/ ) < 0)
             Dbg_printf( NODE, ERROR, "CosManager_destroy_vm_resp failed\n" );
     }
     else {
@@ -335,12 +358,12 @@ int notify_vm_started( char *vmmon_addr, char *theater )
 
 EXIT:
     if (retval < 0) {
-        if (CosManager_create_vm_resp( cos__addr, node_addr, NULL, NULL, -1 ) < 0) {
+        if (CosManager_create_vm_resp( cos_addr, node_addr, NULL, NULL, -1 ) < 0) {
             Dbg_printf( NODE, ERROR, "CosManager_create_vm_resp failed\n" );
         }
     }
     else {
-        if (CosManager_create_vm_resp( cos__addr, node_addr, vm->vm_name, vm->theater, 0 ) < 0) {
+        if (CosManager_create_vm_resp( cos_addr, node_addr, vm->vm_name, vm->theater, 0 ) < 0) {
             Dbg_printf( NODE, ERROR, "CosManager_create_vm_resp failed\n" );
             vm->vm_state = VmState_NULL;
             retval = -1;
@@ -370,7 +393,7 @@ int notify_high_cpu_usage(
     }
 
     if (CosManager_notify_high_cpu_usage( 
-            cos__addr, node_addr, vm->vm_name, cpu_usage_history ) < 0) {
+            cos_addr, node_addr, vm->vm_name, cpu_usage_history ) < 0) {
         Dbg_printf( NODE, ERROR, "CosManager_notify_high_cpu_usage failed\n" );
         return -1;
     }
@@ -394,7 +417,7 @@ int notify_low_cpu_usage(
     }
 
     if (CosManager_notify_low_cpu_usage( 
-            cos__addr, node_addr, vm->vm_name, cpu_usage_history ) < 0) {
+            cos_addr, node_addr, vm->vm_name, cpu_usage_history ) < 0) {
         Dbg_printf( NODE, ERROR, "CosManager_notify_low_cpu_usage failed\n" );
         return -1;
     }
@@ -439,7 +462,7 @@ int shutdown_theater_resp(
 #endif
 
 EXIT:
-    if (CosManager_destroy_vm_resp( cos__addr, node_addr, vm->vm_name, cos__resp ) < 0) {
+    if (CosManager_destroy_vm_resp( cos_addr, node_addr, vm->vm_name, cos__resp ) < 0) {
         Dbg_printf( NODE, ERROR, "CosManager_destroy_vm_resp failed\n" );
         retval = -1;
     }
@@ -517,10 +540,14 @@ int main( int argc, char *argv[] )
 
         switch (msg->msgid) {
         case NodeMessageID_CREATE_VM_REQ:
+            strcpy( cos_addr, msg->return_addr );
+            #if 0
             create_vm_req( 
                 msg->create_vm_req_msg.vmcfg_file,
                 msg->create_vm_req_msg.peer_theaters );
-            strcpy( cos__addr, msg->return_addr );
+            #else
+            start_vm_terminal( eth0_addr );
+            #endif
             break;
 
         case NodeMessageID_DESTROY_VM_REQ:

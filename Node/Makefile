@@ -7,6 +7,10 @@ TARGET = libNodeManager.so NodeManager
 
 all: $(TARGET) 
 
+lib: libNodeManager.so
+
+entity: NodeManager
+
 libNodeManager.so: NodeManager.o node_msg.o
 	$(CC) -shared -o $@ NodeManager.o node_msg.o $(LDFLAGS) -lCommon
 	mv $@ ../Lib

@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include "DebugPrint.h"
 
-#define MAX_RECVBUF_LEN 128
+#define MAX_RECVBUF_LEN 512
 
 int Socket_set_blocking( int sock )
 {
@@ -66,8 +66,8 @@ int Socket_listen( int sock )
 
 int Socket_accept( int sock )
 {
-    int fromlen;
 	struct sockaddr_in client;
+    int fromlen = sizeof( client );
 
     return accept( sock, (struct sockaddr *)&client, &fromlen );
 }
@@ -152,6 +152,7 @@ int Socket_receive_data( int sock, char *buf, int *buflen )
         if (tmplen < 0) {
             Dbg_printf( COMMON, ERROR, "error occured, %d:%s\n", errno, strerror(errno) );
             return -1;
+            /* continue; */
         }
         else
         if (tmplen == 0) {

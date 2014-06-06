@@ -10,7 +10,8 @@
 static
 char *msgid_strings[COS_NUM_MESSAGES] = {
     "CREATE_VM_RESP", "NOTIFY_HIGH_CPU_USAGE", 
-    "NOTIFY_LOW_CPU_USAGE", "DESTROY_VM_RESP" };
+    "NOTIFY_LOW_CPU_USAGE", "DESTROY_VM_RESP",
+    "LAUNCH_TERMINAL_REQ", "TEST" };
 
 CosMessage* cos_alloc_msg(
     CosMessageID msgid )
@@ -97,6 +98,22 @@ void cos_set_destroy_vm_resp_msg(
 }
 
 
+void cos_set_launch_terminal_req_msg(
+    CosMessage  *msg,
+    char        *cmd )
+{
+    msg->launch_term_req_msg.cmd = cmd;
+}
+
+
+void cos_set_test_msg(
+    CosMessage  *msg,
+    char        *data )
+{
+    msg->test_msg.data = data;
+}
+
+
 void cos_dealloc_msg(
     CosMessage  *msg )
 {
@@ -114,7 +131,7 @@ int cos_stringify_msg(
 /* Second line : MSGID,RETURN_ADDR,PARAM1,PARAM2,.... ; data entries */
 
     int currlen = 0, num_params = 0, i, retval = 0;
-    char tempbuf[128];
+    char tempbuf[512];
 
     if ( (msg->msgid < CosMessageID_CREATE_VM_RESP) || 
          (CosMessageID_UNKNOWN <= msg->msgid) ) {
@@ -175,6 +192,26 @@ int cos_stringify_msg(
         num_params++;
 
         sprintf( &tempbuf[currlen], ",%d", msg->destroy_vm_resp_msg.result );
+        currlen = strlen( tempbuf );
+        num_params++;
+        break;
+
+    case CosMessageID_LAUNCH_TERMINAL_REQ:
+        sprintf( &tempbuf[currlen], ",%s", msg->return_addr );
+        currlen = strlen( tempbuf );
+        num_params++;
+
+        sprintf( &tempbuf[currlen], ",%s", msg->launch_term_req_msg.cmd );
+        currlen = strlen( tempbuf );
+        num_params++;
+        break;
+
+    case CosMessageID_TEST:
+        sprintf( &tempbuf[currlen], ",%s", msg->return_addr );
+        currlen = strlen( tempbuf );
+        num_params++;
+
+        sprintf( &tempbuf[currlen], ",%s", msg->test_msg.data );
         currlen = strlen( tempbuf );
         num_params++;
         break;
@@ -249,6 +286,17 @@ CosMessage* cos_parse_msg(
         msg->create_vm_resp_msg.result = atoi( parsed_msg[3] );
         break;
 
+    case CosMessageID_LAUNCH_TERMINAL_REQ:
+        msg = cos_alloc_msg( CosMessageID_LAUNCH_TERMINAL_REQ );
+        msg->return_addr = parsed_msg[1];
+        msg->launch_term_req_msg.cmd = parsed_msg[2];
+        break;
+
+    case CosMessageID_TEST:
+        msg = cos_alloc_msg( CosMessageID_TEST );
+        msg->return_addr = parsed_msg[1];
+        msg->test_msg.data = parsed_msg[2];
+        break;
 
     default:
         Dbg_printf( COS, ERROR, "invalid msgid=%d\n", msgid );

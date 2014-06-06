@@ -23,7 +23,7 @@
 #define DEFAULT_LISTEN_PORT     5000
 #define DEFAULT_SCRIPT_EXEC_PORT     6000
 #define DEFAULT_NODELIST_FILE     "nodelist.txt"
-#define MAX_RECVBUF_LEN         128
+#define MAX_RECVBUF_LEN         512
 #define NODE_ARRAY_LEN          32
 #define VM_CFG_FILE_PATH        "/etc/xen/cos/"
 #define VM_NAME_PREFIX          "cos"
@@ -533,6 +533,13 @@ int destroy_vm_resp( char *vm_name, int result )
 }
 
 
+static
+int launch_terminal_req( char *cmd )
+{
+    Dbg_printf( COS, INFO, "cmd=%s\n", cmd );
+    system( cmd );
+}
+
 int main( int argc, char *argv[] )
 {
     int buflen, retval;
@@ -593,8 +600,15 @@ int main( int argc, char *argv[] )
         /* accepting data */
         buflen = MAX_RECVBUF_LEN;
         newsock = Socket_accept( sock );
-        Socket_set_blocking( newsock );
-        Dbg_printf( COS, DEBUG, "Request accepted\n" );
+        /* Socket_set_blocking( newsock ); */
+        Dbg_printf( COS, DEBUG, "Request accepted, newsock=%d\n", newsock );
+
+        if (newsock < 0) {
+            Dbg_printf( COS, ERROR, "newsock=%d, errno=%s(%d)\n", 
+                        newsock, strerror(errno), errno );
+            continue;
+        }
+
         Socket_receive_data( newsock, buf, &buflen ); /* buf is NULL teminated when returned */
         if (buflen == 0)
             continue;
@@ -639,6 +653,15 @@ int main( int argc, char *argv[] )
             destroy_vm_resp( 
                 msg->create_vm_resp_msg.vm_name, 
                 msg->create_vm_resp_msg.result );
+            break;
+
+        case CosMessageID_LAUNCH_TERMINAL_REQ:
+            launch_terminal_req(
+                msg->launch_term_req_msg.cmd );
+            break;
+
+        case CosMessageID_TEST:
+            Dbg_printf( COS, INFO, "data=%s\n", msg->test_msg.data );
             break;
 
         default:
