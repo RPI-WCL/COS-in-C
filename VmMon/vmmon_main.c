@@ -414,6 +414,8 @@ int start_theater_terminal( char *dest_ipaddr )
                  dest_ipaddr, theater_port, THEATER_TERMINAL_COLOR, dest_ipaddr,
                  classpath, THEATER_START_COMMAND );
     CosManager_launch_terminal_req( cos_addr, vmmon_addr, cmd );
+
+    return 0;
 }
 
 
@@ -477,9 +479,15 @@ int main( int argc, char *argv[] )
     get_netif_addr( "eth0", eth0_addr );
     sprintf( theater, "%s:%d", eth0_addr, theater_port );
     sprintf( vmmon_addr, "%s:%d", eth0_addr, listen_port );
-    /* notify_vm_started( nc_addr ,vmmon_addr, theater ); */
 
-    /* start_theater_terminal( eth0_addr ); */
+    /* startup procedure */ 
+    if (start_theater_terminal( eth0_addr ) < 0) {
+        Dbg_printf( VMMON, ERROR, "start_theater_terminal failed\n" );
+        exit( 1 );
+    }
+    else {
+        notify_vm_started( nc_addr ,vmmon_addr, theater );
+    }
 
     Socket_set_timeout( sock, ACCEPT_TIMEOUT_MSEC /*ms*/);
 

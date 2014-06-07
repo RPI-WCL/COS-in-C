@@ -217,8 +217,6 @@ int CosManager_launch_terminal_req(
     cos_dealloc_msg( msg );
 
     return retval;
-
-
 }
 
 

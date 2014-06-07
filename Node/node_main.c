@@ -281,16 +281,25 @@ EXIT:
 static
 int start_vm_terminal( char *dest_ipaddr )
 {
+    VM *vm;
     char cmd[256], exec_path[64];
+
+    vm = find_vm_by_state( VmState_NULL );
+    strcpy( vm->vm_name, node_addr );   /* this time, node_addr == vm_addr */
+
     strcpy( exec_path, getenv("HOME") );
     strcat( exec_path, "/" );
     strcat( exec_path, VMMON_EXEC_PATH );
     sprintf( cmd, "gnome-terminal --title=\"VmMonitor@%s:%d\" --window-with-profile=\"%s\" --command=\"ssh user@%s %s %s %s %d %d\"", 
              dest_ipaddr, VMMON_LISTEN_PORT, VMMON_TERMINAL_COLOR, dest_ipaddr,
              exec_path, cos_addr, node_addr, VMMON_VCPU, VMMON_LISTEN_PORT );
-    CosManager_launch_terminal_req( cos_addr, node_addr, cmd );
-    usleep(3 * 1000000);
-    CosManager_test( cos_addr, "ABCDEFG" );
+
+    if (CosManager_launch_terminal_req( cos_addr, node_addr, cmd ) < 0) {
+        Dbg_printf( NODE, ERROR, "CosManager_launch_terminal_req failed\n" );
+    }
+    else {
+        vm->vm_state = VmState_IN_CREATION;
+    }
 }
 
 
@@ -354,7 +363,7 @@ int notify_vm_started( char *vmmon_addr, char *theater )
     strcpy( vm->vmmon_addr, vmmon_addr );
     strcpy( vm->theater, theater );
 
-    Dbg_printf( NODE, INFO, "VM has sucos_essfully started (vmmon_addr=%s, theater=%s)\n", vmmon_addr, theater );
+    Dbg_printf( NODE, INFO, "VM has successfully started (vmmon_addr=%s, theater=%s)\n", vmmon_addr, theater );
 
 EXIT:
     if (retval < 0) {
@@ -369,7 +378,7 @@ EXIT:
             retval = -1;
         }
         else {
-            /* SUCOS_ESS */
+            /* SUCCESS */
             vm->vm_state = VmState_ACTIVE;
         }
     }

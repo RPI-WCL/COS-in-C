@@ -3,7 +3,7 @@ CFLAGS = -g -fPIC
 LDFLAGS = -L../Lib
 INCLUDES = -I../Common -I../Node -I.
 LIBS = -lCommon -lNodeManager -lVmMonitor -lCosManager
-TARGET = libVmMonitor.so VmMonitor t_highcpu t_lowcpu t_startvm
+TARGET = libVmMonitor.so VmMonitor t_highcpu t_lowcpu
 
 all: $(TARGET) 
 
@@ -11,7 +11,7 @@ lib: libVmMonitor.so
 
 entity: VmMonitor
 
-test:  t_highcpu t_lowcpu t_startvm
+test:  t_highcpu t_lowcpu
 
 libVmMonitor.so: VmMonitor.o vmmon_msg.o
 	$(CC) -shared -o $@ VmMonitor.o vmmon_msg.o $(LDFLAGS) -lCommon

@@ -2,7 +2,7 @@
 #include "DebugPrint.h"
 #include "NodeManager.h"
 
-#define NODE_IPADDR      "cirrus.cs.rpi.edu:5001"  /* cirrus */
+#define NODE_IPADDR      "localhost:5001"
 
 
 int dbg_level = ALL;

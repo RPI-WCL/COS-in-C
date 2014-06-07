@@ -126,7 +126,7 @@ int NodeManager_notify_vm_started(
     msg = node_alloc_msg( NodeMessageID_NOTIFY_VM_STARTED );
     node_set_notify_vm_started_msg( msg, vmmon_addr, theater );
 
-    if (send_msg( node_addr, NULL, msg ) < 0) {
+    if (send_msg( node_addr, vmmon_addr, msg ) < 0) {
         Dbg_printf( NODE, ERROR, "node_send_msg, node_addr=%s, msg=%s failed\n", 
                     node_addr, node_msgid2str( msg->msgid ) );
         retval = -1;

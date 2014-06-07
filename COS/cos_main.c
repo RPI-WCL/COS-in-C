@@ -16,6 +16,7 @@
 #include <sys/times.h>
 
 
+
 #include "Socket.h"
 #include "DebugPrint.h"
 #include "cos_msg.h"
@@ -30,12 +31,18 @@
 #define THEATER_FILE            "./theater.txt"
 #define HIGH_CPU_USAGE_CHECK_TIME_THRESHOLD     10000   /* msec */
 
+#define THEATER_IOS_PATH        "Git/COS-in-C/Lib/ios0.4.jar"
+#define THEATER_SALSA_PATH      "Git/COS-in-C/Lib/salsa1.1.5.jar"
+#define THEATER_CONNECT_COMMAND "src.testing.reachability.Full ./theater.txt"
+
 typedef enum {
     NodeState_NULL,
     NodeState_IN_VM_CREATION,
     NodeState_IN_VM_DESTRUCTION,
     NodeState_VM_ACTIVE,
 } NodeState;
+
+char *node_state_str[] = {"NULL", "IN_VM_CREATION", "IN_VM_CREATION", "VM_ACTIVE" };
 
 typedef struct {
     /* NodeManager management */
@@ -338,27 +345,33 @@ int connect_peer_theaters( void )
 
     fclose( fp );
 
-#if 1
-    Dbg_printf( COS, ERROR, "Theaters connected at %lf\n", gettimeofday_msec() );
+    if (get_num_active_theaters() < 2)  {
+        Dbg_printf( COS, INFO, "Less then two theaters\n" );
+        return 0;
+    }
 
+
+    Dbg_printf( COS, WARN, "Connecting theaters %lf\n", gettimeofday_msec() );
+#if 0
     if (exec_command( "/usr/bin/java", "java", "-Dnetif=eth0",
                       "src.testing.reachability.Full", THEATER_FILE, NULL, 5000 ) < 0) {
         Dbg_printf( COS, ERROR, "exec_command failed\n" );
         return -1;
     }
 #else
-    if (request_script_exec() < 0) {
-        Dbg_printf( COS, ERROR, "request_script_exec failed\n" );
-        return -1;
-    }
+    char cmd[256], classpath[128];
+    strcpy( classpath, getenv("HOME") );
+    strcat( classpath, "/" );
+    strcat( classpath, THEATER_SALSA_PATH );
+    strcat( classpath, ":" );
+    strcat( classpath, getenv("HOME") );
+    strcat( classpath, "/" );
+    strcat( classpath, THEATER_IOS_PATH );
 
-    /* if (JNI_call_static_method( jvm_options, 2, */
-    /*                             "src/testing/reachability/Full",  */
-    /*                             "main", "([Ljava/lang/String;)V" ) < 0) { */
-    /*     Dbg_printf( COS, ERROR, "JNI call failed\n" ); */
-    /*     return -1; */
-    /* } */
-
+    sprintf( cmd, "java -Dnetif=\"eth0\" -cp %s %s", classpath, THEATER_CONNECT_COMMAND );
+    Dbg_printf( COS, INFO, "cmd=%s\n", cmd );
+    usleep( 2 * 1000000);
+    system( cmd );
 #endif
 
     return 0;
@@ -391,8 +404,7 @@ int create_vm_resp( char *vm_name, char *new_theater, int result )
     node->state = NodeState_VM_ACTIVE;
     num_active_vm++;
 
-    if (1 < get_num_active_theaters()) 
-        connect_peer_theaters();
+    connect_peer_theaters();
 
     return 0;
 }
@@ -407,6 +419,10 @@ int check_all_nodes_cpu_usage( void )
     current_time = gettimeofday_msec();
     for (i = 0; i < num_node; i++) {
         node = &node_array[i];
+
+        Dbg_printf( COS, DEBUG,"VM-%02d: %s, high_cpu:%s\n", 
+                    i, node_state_str[node->state], node->high_cpu_usage ? "true" : "false" );
+
         if (node->state == NodeState_IN_VM_CREATION) {
             /* there is new VM coming */
             node->high_cpu_usage = 0;
@@ -416,8 +432,12 @@ int check_all_nodes_cpu_usage( void )
         }
         else    
         if (node->state == NodeState_VM_ACTIVE) {
+#if 1
             if (!node->high_cpu_usage ||
                 ((node->time_high_cpu_usage_notified + HIGH_CPU_USAGE_CHECK_TIME_THRESHOLD) < current_time)) {
+#else
+            if (!node->high_cpu_usage) {
+#endif
                 /* there may be an under utilized VM */
                 node->high_cpu_usage = 0;
                 node->time_high_cpu_usage_notified = 0;
@@ -454,11 +474,12 @@ int notify_high_cpu_usage( char *vm_name, double cpu_usage_history[CPU_USAGE_HIS
     node->time_high_cpu_usage_notified = gettimeofday_msec();
     
     if (check_all_nodes_cpu_usage()) {
-        /* all nodes are highly utilized, so create a new VM */
+        /* all nodes are highly utilized, create a new VM */
+        Dbg_printf( COS, WARN, "All nodes are highly utilized!!\n" );
         retval = create_vm_req();
     }
     else {
-        Dbg_printf( COS, INFO, "not all nodes are highly utilized\n" );
+        Dbg_printf( COS, WARN, "Not all nodes are highly utilized\n" );
         retval = 0;
     }
 
@@ -600,7 +621,7 @@ int main( int argc, char *argv[] )
         /* accepting data */
         buflen = MAX_RECVBUF_LEN;
         newsock = Socket_accept( sock );
-        /* Socket_set_blocking( newsock ); */
+        Socket_set_blocking( newsock );
         Dbg_printf( COS, DEBUG, "Request accepted, newsock=%d\n", newsock );
 
         if (newsock < 0) {
